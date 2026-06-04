@@ -6,7 +6,7 @@ st.set_page_config(page_title="BIST ROBOT", layout="wide")
 
 st.title("📊 BIST ROBOT - STABLE FIX")
 
-stocks = ["THYAO.IS","ASELS.IS","TUPRS.IS","KCHOL.IS","ASTOR.IS"]
+stocks = ["THYAO.IS","EGEEN.IS","PGSUS.IS","FRIGO.IS","ASTOR.IS","SISE.IS","SASA.IS","GWIND.IS","ATATR.IS","TEKTU.IS","RNPOL.IS"]
 
 results = []
 
