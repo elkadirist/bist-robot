@@ -2,25 +2,49 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import ta
+import numpy as np
+import requests
 from streamlit_autorefresh import st_autorefresh
 
-st.set_page_config(page_title="BIST PRO ROBOT", layout="wide")
+# =========================
+# TELEGRAM
+# =========================
+BOT_TOKEN = "TOKEN"
+CHAT_ID = "CHAT_ID"
 
+sent_signals = set()
+
+def send_telegram(msg):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    try:
+        requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
+    except:
+        pass
+
+# =========================
+# REFRESH
+# =========================
 st_autorefresh(interval=60000, key="refresh")
 
-st.title("📊 BIST PRO AL/SAT ROBOT (RENDER STABLE)")
+st.title("📊 PRO TRADING BOT (BIST100 AI SIGNAL ENGINE)")
 
+# =========================
+# BIST100 LIST
+# =========================
 stocks = [
-    "THYAO.IS","ASELS.IS","TUPRS.IS","ASTOR.IS","KCHOL.IS",
-    "SISE.IS","BIMAS.IS","SAHOL.IS","EKGYO.IS","EREGL.IS",
-    "PGSUS.IS","KOZAL.IS","FROTO.IS","TOASO.IS","GARAN.IS"
+    "THYAO.IS","ASELS.IS","TUPRS.IS","ASTOR.IS","KCHOL.IS","SISE.IS",
+    "BIMAS.IS","SAHOL.IS","EKGYO.IS","EREGL.IS","PGSUS.IS","KOZAL.IS",
+    "FROTO.IS","TOASO.IS","GARAN.IS","ISCTR.IS","YKBNK.IS","AKBNK.IS"
 ]
 
 results = []
 
+# =========================
+# ENGINE
+# =========================
 for s in stocks:
     try:
-        df = yf.download(s, period="6mo", interval="1d", progress=False)
+        df = yf.download(s, period="1y", interval="1d", progress=False)
 
         if df is None or df.empty:
             continue
@@ -31,11 +55,15 @@ for s in stocks:
         close = df["Close"].dropna()
         volume = df["Volume"].dropna()
 
-        if len(close) < 60:
+        if len(close) < 200:
             continue
 
+        # =====================
+        # INDICATORS
+        # =====================
         ema20 = close.ewm(span=20).mean()
         ema50 = close.ewm(span=50).mean()
+        ema200 = close.ewm(span=200).mean()
 
         rsi = ta.momentum.RSIIndicator(close=close).rsi()
 
@@ -43,44 +71,71 @@ for s in stocks:
         macd_line = macd.macd()
         signal_line = macd.macd_signal()
 
-        vol_spike = volume.iloc[-1] > volume.mean() * 1.8
+        # =====================
+        # VOLUME Z SCORE
+        # =====================
+        vol_mean = volume.mean()
+        vol_std = volume.std()
+        vol_z = (volume.iloc[-1] - vol_mean) / (vol_std + 1e-9)
 
-        skor = 0
+        # =====================
+        # SCORE SYSTEM
+        # =====================
+        score = 0
 
-        if ema20.iloc[-1] > ema50.iloc[-1]:
-            skor += 30
+        # trend
+        if ema20.iloc[-1] > ema50.iloc[-1] > ema200.iloc[-1]:
+            score += 40
 
+        # momentum
         if close.iloc[-1] > close.iloc[-5]:
-            skor += 20
+            score += 15
 
-        if 45 < rsi.iloc[-1] < 70:
-            skor += 20
+        # RSI zone
+        if 40 < rsi.iloc[-1] < 75:
+            score += 15
 
+        # MACD
         if macd_line.iloc[-1] > signal_line.iloc[-1]:
-            skor += 20
+            score += 20
 
-        if vol_spike:
-            skor += 30
+        # volume spike
+        if vol_z > 2:
+            score += 25
 
-        if skor >= 80:
-            sinyal = "🟢 GÜÇLÜ AL"
-        elif skor >= 60:
-            sinyal = "🟡 AL"
-        elif skor >= 40:
-            sinyal = "🟠 İZLE"
-        else:
-            sinyal = "🔴 SAT"
+        # =====================
+        # SIGNAL
+        # =====================
+        signal = "SAT"
 
-        results.append([s, round(close.iloc[-1],2), skor, sinyal])
+        if score >= 85:
+            signal = "🟢 STRONG BUY"
+        elif score >= 65:
+            signal = "🟡 BUY"
+        elif score >= 45:
+            signal = "🟠 WATCH"
+
+        results.append([s, round(close.iloc[-1],2), int(score), signal])
+
+        # =====================
+        # TELEGRAM ALERT (NO SPAM)
+        # =====================
+        key = f"{s}_{signal}"
+
+        if signal == "🟢 STRONG BUY" and key not in sent_signals:
+            send_telegram(f"🔥 STRONG BUY: {s}\nScore: {score}\nPrice: {close.iloc[-1]}")
+            sent_signals.add(key)
 
     except:
         continue
 
+# =========================
+# OUTPUT
+# =========================
 df_out = pd.DataFrame(results, columns=["Hisse","Fiyat","Skor","Sinyal"])
 df_out = df_out.sort_values("Skor", ascending=False)
 
 st.dataframe(df_out, use_container_width=True)
 
-st.subheader("🔥 Güçlü AL (80+)")
-
-st.dataframe(df_out[df_out["Skor"] >= 80], use_container_width=True)
+st.subheader("🟢 STRONG BUY LIST")
+st.dataframe(df_out[df_out["Skor"] >= 85], use_container_width=True)
