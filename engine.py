@@ -1,8 +1,9 @@
-
 import yfinance as yf
 import pandas as pd
 import ta
+
 from ta.volatility import BollingerBands
+
 # =========================
 # MAIN SCANNER
 # =========================
@@ -11,26 +12,20 @@ def scan_stocks(stocks):
     results = []
 
     for s in stocks:
-    try:
+        try:
+            df = yf.download(s, period="1y", interval="1d", progress=False)
 
-        df = yf.download(s, period="1y", interval="1d", progress=False)
+            if df is None or df.empty:
+                continue
 
-        if df is None or df.empty:
-            continue
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
 
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
+            close = df["Close"].dropna()
+            volume = df["Volume"].dropna()
 
-        close = df["Close"].dropna()
-        volume = df["Volume"].dropna()
-
-        if len(close) < 200:
-            continue
-
-        # burada indicatorlar
-
-    except:
-        continue
+            if len(close) < 200:
+                continue
 
             # =====================
             # INDICATORS
@@ -38,25 +33,26 @@ def scan_stocks(stocks):
             ema20 = close.ewm(span=20).mean()
             ema50 = close.ewm(span=50).mean()
             ema200 = close.ewm(span=200).mean()
-# =====================
-# BOLLINGER BANDS
-# =====================
-bb = BollingerBands(close=close, window=20, window_dev=2)
 
-bb_high = bb.bollinger_hband()
-bb_low = bb.bollinger_lband()
-bb_mid = bb.bollinger_mavg()
-
-# =====================
-# SUPPORT / RESISTANCE
-# =====================
-support = close.rolling(window=20).min()
-resistance = close.rolling(window=20).max()
             rsi = ta.momentum.RSIIndicator(close=close).rsi()
 
             macd = ta.trend.MACD(close=close)
             macd_line = macd.macd()
             signal_line = macd.macd_signal()
+
+            # =====================
+            # BOLLINGER
+            # =====================
+            bb = BollingerBands(close=close, window=20, window_dev=2)
+
+            bb_high = bb.bollinger_hband()
+            bb_low = bb.bollinger_lband()
+
+            # =====================
+            # SUPPORT / RESISTANCE
+            # =====================
+            support = close.rolling(window=20).min()
+            resistance = close.rolling(window=20).max()
 
             # =====================
             # VOLUME
@@ -72,25 +68,7 @@ resistance = close.rolling(window=20).max()
             # SCORE SYSTEM
             # =====================
             score = 0
-# =====================
-# SUPPORT / RESISTANCE + BOLLINGER
-# =====================
 
-# Support bounce
-if abs(close.iloc[-1] - support.iloc[-1]) / close.iloc[-1] < 0.02:
-    score += 15
-
-# Resistance breakout
-if close.iloc[-1] > resistance.iloc[-5]:
-    score += 10
-
-# Bollinger dip (AL fırsatı)
-if close.iloc[-1] < bb_low.iloc[-1]:
-    score += 20
-
-# Bollinger üst (risk)
-if close.iloc[-1] > bb_high.iloc[-1]:
-    score -= 10
             # trend
             if ema20.iloc[-1] > ema50.iloc[-1] > ema200.iloc[-1]:
                 score += 40
@@ -112,6 +90,24 @@ if close.iloc[-1] > bb_high.iloc[-1]:
                 score += 25
 
             # =====================
+            # BOLLINGER LOGIC
+            # =====================
+            if close.iloc[-1] < bb_low.iloc[-1]:
+                score += 20
+
+            if close.iloc[-1] > bb_high.iloc[-1]:
+                score -= 10
+
+            # =====================
+            # SUPPORT / RESISTANCE LOGIC
+            # =====================
+            if abs(close.iloc[-1] - support.iloc[-1]) / close.iloc[-1] < 0.02:
+                score += 15
+
+            if close.iloc[-1] > resistance.iloc[-5]:
+                score += 10
+
+            # =====================
             # SIGNAL
             # =====================
             signal = "SAT"
@@ -129,10 +125,3 @@ if close.iloc[-1] > bb_high.iloc[-1]:
             continue
 
     return results
-if len(close) < 50:
-    continue
-if len(close) < 50:
-    continue
-
-if pd.isna(close.iloc[-1]):
-    continue
