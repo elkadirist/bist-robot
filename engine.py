@@ -2,7 +2,7 @@
 import yfinance as yf
 import pandas as pd
 import ta
-
+from ta.volatility import BollingerBands
 # =========================
 # MAIN SCANNER
 # =========================
@@ -32,7 +32,20 @@ def scan_stocks(stocks):
             ema20 = close.ewm(span=20).mean()
             ema50 = close.ewm(span=50).mean()
             ema200 = close.ewm(span=200).mean()
+# =====================
+# BOLLINGER BANDS
+# =====================
+bb = BollingerBands(close=close, window=20, window_dev=2)
 
+bb_high = bb.bollinger_hband()
+bb_low = bb.bollinger_lband()
+bb_mid = bb.bollinger_mavg()
+
+# =====================
+# SUPPORT / RESISTANCE
+# =====================
+support = close.rolling(window=20).min()
+resistance = close.rolling(window=20).max()
             rsi = ta.momentum.RSIIndicator(close=close).rsi()
 
             macd = ta.trend.MACD(close=close)
@@ -53,7 +66,13 @@ def scan_stocks(stocks):
             # SCORE SYSTEM
             # =====================
             score = 0
+# Dipten alım fırsatı
+if close.iloc[-1] < bb_low.iloc[-1]:
+    score += 20
 
+# Aşırı şişme (risk)
+if close.iloc[-1] > bb_high.iloc[-1]:
+    score -= 10
             # trend
             if ema20.iloc[-1] > ema50.iloc[-1] > ema200.iloc[-1]:
                 score += 40
