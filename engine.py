@@ -67,7 +67,7 @@ resistance = close.rolling(window=20).max()
             # =====================
             score = 0
 # =====================
-# BOLLINGER + SUPPORT/RESISTANCE (EKLEME)
+# SUPPORT / RESISTANCE + BOLLINGER
 # =====================
 
 # Support bounce
@@ -77,11 +77,12 @@ if abs(close.iloc[-1] - support.iloc[-1]) / close.iloc[-1] < 0.02:
 # Resistance breakout
 if close.iloc[-1] > resistance.iloc[-5]:
     score += 10
-# Dipten alım fırsatı
+
+# Bollinger dip (AL fırsatı)
 if close.iloc[-1] < bb_low.iloc[-1]:
     score += 20
 
-# Aşırı şişme (risk)
+# Bollinger üst (risk)
 if close.iloc[-1] > bb_high.iloc[-1]:
     score -= 10
             # trend
