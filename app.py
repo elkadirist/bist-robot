@@ -7,7 +7,7 @@ import ta
 from engine import scan_stocks
 
 # =========================
-# CONFIG
+# PAGE CONFIG
 # =========================
 st.set_page_config(page_title="PRO AI TRADING DASHBOARD", layout="wide")
 
@@ -27,7 +27,7 @@ st.title("📊 PRO AI TRADING DASHBOARD (BIST)")
 st.write("Canlı teknik analiz + AI sinyal sistemi")
 
 # =========================
-# SCAN ENGINE
+# SCAN DATA
 # =========================
 results = scan_stocks(stocks)
 
@@ -47,7 +47,7 @@ st.subheader("📋 Sinyal Tablosu")
 st.dataframe(filtered.sort_values("AI%", ascending=False), use_container_width=True)
 
 # =========================
-# STOCK SELECT
+# SELECT STOCK
 # =========================
 st.subheader("📈 Grafik Analizi")
 
@@ -65,10 +65,15 @@ ema50 = data["Close"].ewm(span=50).mean()
 bb = ta.volatility.BollingerBands(close=data["Close"], window=20, window_dev=2)
 
 # =========================
-# FIX: SAFE 1D CONVERSION
+# SAFE 1D CONVERSION (CRITICAL FIX)
 # =========================
-bb_upper = pd.Series(bb.bollinger_hband().values.reshape(-1), index=data.index)
-bb_lower = pd.Series(bb.bollinger_lband().values.reshape(-1), index=data.index)
+bb_upper = bb.bollinger_hband()
+if isinstance(bb_upper, pd.DataFrame):
+    bb_upper = bb_upper.iloc[:, 0]
+
+bb_lower = bb.bollinger_lband()
+if isinstance(bb_lower, pd.DataFrame):
+    bb_lower = bb_lower.iloc[:, 0]
 
 # =========================
 # CHART
