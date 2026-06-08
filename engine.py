@@ -1,7 +1,6 @@
 import yfinance as yf
 import pandas as pd
 import ta
-
 from ta.volatility import BollingerBands
 
 # =========================
@@ -12,18 +11,25 @@ def scan_stocks(stocks):
     results = []
 
     for s in stocks:
-         try:
-        df = yf.download(s, period="1y", interval="1d", progress=False)
+        try:
+            df = yf.download(
+                s,
+                period="1y",
+                interval="1d",
+                progress=False
+            )
 
-        if df is None or df.empty:
-            continue
+            if df is None or df.empty:
+                continue
 
-        close = df["Close"].dropna()
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
 
-        bb = BollingerBands(close=close, window=20, window_dev=2)
+            close = df["Close"].dropna()
+            volume = df["Volume"].dropna()
 
-    except:
-        continue
+            if len(close) < 200:
+                continue
 
             # =====================
             # INDICATORS
@@ -41,7 +47,11 @@ def scan_stocks(stocks):
             # =====================
             # BOLLINGER
             # =====================
-            bb = BollingerBands(close=close, window=20, window_dev=2)
+            bb = BollingerBands(
+                close=close,
+                window=20,
+                window_dev=2
+            )
 
             bb_high = bb.bollinger_hband()
             bb_low = bb.bollinger_lband()
@@ -59,19 +69,22 @@ def scan_stocks(stocks):
             vol_std = volume.std()
 
             vol_z = 0
+
             if vol_std > 0:
-                vol_z = (volume.iloc[-1] - vol_mean) / vol_std
+                vol_z = (
+                    volume.iloc[-1] - vol_mean
+                ) / vol_std
 
             # =====================
             # SCORE SYSTEM
             # =====================
             score = 0
 
-            # trend
+            # Trend
             if ema20.iloc[-1] > ema50.iloc[-1] > ema200.iloc[-1]:
                 score += 40
 
-            # momentum
+            # Momentum
             if close.iloc[-1] > close.iloc[-5]:
                 score += 15
 
@@ -83,7 +96,7 @@ def scan_stocks(stocks):
             if macd_line.iloc[-1] > signal_line.iloc[-1]:
                 score += 20
 
-            # volume spike
+            # Volume spike
             if vol_z > 2:
                 score += 25
 
@@ -97,9 +110,11 @@ def scan_stocks(stocks):
                 score -= 10
 
             # =====================
-            # SUPPORT / RESISTANCE LOGIC
+            # SUPPORT / RESISTANCE
             # =====================
-            if abs(close.iloc[-1] - support.iloc[-1]) / close.iloc[-1] < 0.02:
+            if abs(
+                close.iloc[-1] - support.iloc[-1]
+            ) / close.iloc[-1] < 0.02:
                 score += 15
 
             if close.iloc[-1] > resistance.iloc[-5]:
@@ -117,9 +132,14 @@ def scan_stocks(stocks):
             elif score >= 45:
                 signal = "🟠 WATCH"
 
-            results.append([s, round(close.iloc[-1], 2), score, signal])
+            results.append([
+                s,
+                round(close.iloc[-1], 2),
+                int(score),
+                signal
+            ])
 
-        except:
+        except Exception:
             continue
 
     return results
