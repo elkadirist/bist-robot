@@ -3,9 +3,7 @@ import pandas as pd
 import ta
 from ta.volatility import BollingerBands
 
-# =========================
-# MAIN SCANNER
-# =========================
+
 def scan_stocks(stocks):
 
     results = []
@@ -16,7 +14,8 @@ def scan_stocks(stocks):
                 s,
                 period="1y",
                 interval="1d",
-                progress=False
+                progress=False,
+                auto_adjust=True
             )
 
             if df is None or df.empty:
@@ -31,22 +30,20 @@ def scan_stocks(stocks):
             if len(close) < 200:
                 continue
 
-            # =====================
-            # INDICATORS
-            # =====================
+            # EMA
             ema20 = close.ewm(span=20).mean()
             ema50 = close.ewm(span=50).mean()
             ema200 = close.ewm(span=200).mean()
 
+            # RSI
             rsi = ta.momentum.RSIIndicator(close=close).rsi()
 
+            # MACD
             macd = ta.trend.MACD(close=close)
             macd_line = macd.macd()
             signal_line = macd.macd_signal()
 
-            # =====================
-            # BOLLINGER
-            # =====================
+            # Bollinger
             bb = BollingerBands(
                 close=close,
                 window=20,
@@ -56,28 +53,19 @@ def scan_stocks(stocks):
             bb_high = bb.bollinger_hband()
             bb_low = bb.bollinger_lband()
 
-            # =====================
-            # SUPPORT / RESISTANCE
-            # =====================
-            support = close.rolling(window=20).min()
-            resistance = close.rolling(window=20).max()
+            # Support / Resistance
+            support = close.rolling(20).min()
+            resistance = close.rolling(20).max()
 
-            # =====================
-            # VOLUME
-            # =====================
+            # Volume Z Score
             vol_mean = volume.mean()
             vol_std = volume.std()
 
             vol_z = 0
-
             if vol_std > 0:
-                vol_z = (
-                    volume.iloc[-1] - vol_mean
-                ) / vol_std
+                vol_z = (volume.iloc[-1] - vol_mean) / vol_std
 
-            # =====================
-            # SCORE SYSTEM
-            # =====================
+            # Score
             score = 0
 
             # Trend
@@ -96,33 +84,26 @@ def scan_stocks(stocks):
             if macd_line.iloc[-1] > signal_line.iloc[-1]:
                 score += 20
 
-            # Volume spike
+            # Volume
             if vol_z > 2:
                 score += 25
 
-            # =====================
-            # BOLLINGER LOGIC
-            # =====================
+            # Bollinger
             if close.iloc[-1] < bb_low.iloc[-1]:
                 score += 20
 
             if close.iloc[-1] > bb_high.iloc[-1]:
                 score -= 10
 
-            # =====================
-            # SUPPORT / RESISTANCE
-            # =====================
-            if abs(
-                close.iloc[-1] - support.iloc[-1]
-            ) / close.iloc[-1] < 0.02:
+            # Support
+            if abs(close.iloc[-1] - support.iloc[-1]) / close.iloc[-1] < 0.02:
                 score += 15
 
+            # Resistance Breakout
             if close.iloc[-1] > resistance.iloc[-5]:
                 score += 10
 
-            # =====================
-            # SIGNAL
-            # =====================
+            # Signal
             signal = "SAT"
 
             if score >= 85:
@@ -134,7 +115,7 @@ def scan_stocks(stocks):
 
             results.append([
                 s,
-                round(close.iloc[-1], 2),
+                round(float(close.iloc[-1]), 2),
                 int(score),
                 signal
             ])
