@@ -123,3 +123,5 @@ if close.iloc[-1] > bb_high.iloc[-1]:
             continue
 
     return results
+if len(close) < 50:
+    continue
