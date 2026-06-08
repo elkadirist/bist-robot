@@ -15,8 +15,8 @@ st.set_page_config(page_title="PRO AI TRADING DASHBOARD", layout="wide")
 # =========================
 stocks = [
     "THYAO.IS","ASELS.IS","BIMAS.IS","FROTO.IS",
-    "SISE.IS","FRIGO.IS","ASTOR.IS","SASA.IS",
-    "PGSUS.IS","RNPOL.IS","ATATR.IS","TEKTU.IS","GWIND.IS"
+    "SISE.IS","KOZAL.IS","ASTOR.IS","SASA.IS",
+    "EKGYO.IS","GARAN.IS","YKBNK.IS"
 ]
 
 # =========================
@@ -56,13 +56,13 @@ data = yf.download(selected, period="6mo", interval="1d")
 data = data.dropna()
 
 # =========================
-# INDICATORS (SAFE)
+# INDICATORS
 # =========================
 ema20 = data["Close"].ewm(span=20).mean()
 ema50 = data["Close"].ewm(span=50).mean()
 
 # =========================
-# MANUAL BOLLINGER (CRASH PROOF)
+# MANUAL BOLLINGER (SAFE + NO ERROR)
 # =========================
 window = 20
 
@@ -121,13 +121,14 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 # =========================
-# AI PANEL
+# AI DETAIL PANEL (FIXED)
 # =========================
 st.subheader("🤖 AI Sinyal Detayı")
 
-selected_data = df[df["Hisse"] == selected.replace(".IS","")]
+# 🔥 FIX: NO .replace(".IS","") !!!
+selected_data = df[df["Hisse"] == selected]
 
 if not selected_data.empty:
     st.dataframe(selected_data, use_container_width=True)
 else:
-    st.info("Veri bulunamadı")
+    st.info("Bu hisse için sinyal verisi yok.")
