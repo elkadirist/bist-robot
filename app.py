@@ -9,25 +9,25 @@ from engine import scan_stocks
 # =========================
 # CONFIG
 # =========================
-st.set_page_config(page_title="PRO AI Trading Bot", layout="wide")
+st.set_page_config(page_title="PRO AI TRADING DASHBOARD", layout="wide")
 
 # =========================
 # STOCK LIST
 # =========================
 stocks = [
     "THYAO.IS","ASELS.IS","BIMAS.IS","FROTO.IS",
-    "SISE.IS","FRIGO.IS","ASTOR.IS","SASA.IS",
-    "ATATR.IS","TEKTU.IS","GWIND.IS","PGSUS.IS","EGEEN.IS","RNPOL.IS"
+    "SISE.IS","KOZAL.IS","ASTOR.IS","SASA.IS",
+    "EKGYO.IS","GARAN.IS","YKBNK.IS"
 ]
 
 # =========================
-# HEADER
+# TITLE
 # =========================
 st.title("📊 PRO AI TRADING DASHBOARD (BIST)")
 st.write("Canlı teknik analiz + AI sinyal sistemi")
 
 # =========================
-# SCAN RESULTS
+# SCAN ENGINE
 # =========================
 results = scan_stocks(stocks)
 
@@ -37,26 +37,17 @@ df = pd.DataFrame(
 )
 
 # =========================
-# FILTERS
+# FILTER
 # =========================
-col1, col2 = st.columns(2)
+min_ai = st.slider("Minimum AI %", 0, 100, 50)
 
-with col1:
-    min_ai = st.slider("Minimum AI %", 0, 100, 50)
+df_filtered = df[df["AI%"] >= min_ai]
 
-filtered_df = df[df["AI%"] >= min_ai]
-
-# =========================
-# TABLE
-# =========================
 st.subheader("📋 Sinyal Tablosu")
-st.dataframe(
-    filtered_df.sort_values("AI%", ascending=False),
-    use_container_width=True
-)
+st.dataframe(df_filtered.sort_values("AI%", ascending=False), use_container_width=True)
 
 # =========================
-# SELECT STOCK
+# STOCK SELECT
 # =========================
 st.subheader("📈 Grafik Analizi")
 
@@ -72,6 +63,10 @@ ema20 = data["Close"].ewm(span=20).mean()
 ema50 = data["Close"].ewm(span=50).mean()
 
 bb = ta.volatility.BollingerBands(close=data["Close"], window=20, window_dev=2)
+
+# FIX: 1D conversion (CRITICAL)
+bb_upper = bb.bollinger_hband().squeeze()
+bb_lower = bb.bollinger_lband().squeeze()
 
 # =========================
 # CHART
@@ -104,13 +99,13 @@ fig.add_trace(go.Scatter(
 # Bollinger
 fig.add_trace(go.Scatter(
     x=data.index,
-    y=bb.bollinger_hband(),
+    y=bb_upper,
     name="BB Upper"
 ))
 
 fig.add_trace(go.Scatter(
     x=data.index,
-    y=bb.bollinger_lband(),
+    y=bb_lower,
     name="BB Lower"
 ))
 
@@ -128,10 +123,13 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 # =========================
-# INFO PANEL
+# AI INFO PANEL
 # =========================
-latest = df[df["Hisse"] == selected.replace(".IS","")]
+selected_data = df[df["Hisse"] == selected.replace(".IS","")]
 
-if not latest.empty:
-    st.subheader("🤖 AI Sinyal")
-    st.write(latest)
+st.subheader("🤖 AI Sinyal Detayı")
+
+if not selected_data.empty:
+    st.dataframe(selected_data, use_container_width=True)
+else:
+    st.info("Bu hisse için veri yok.")
