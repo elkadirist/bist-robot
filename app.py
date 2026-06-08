@@ -41,10 +41,10 @@ df = pd.DataFrame(
 # =========================
 min_ai = st.slider("Minimum AI %", 0, 100, 50)
 
-df_filtered = df[df["AI%"] >= min_ai]
+filtered = df[df["AI%"] >= min_ai]
 
 st.subheader("📋 Sinyal Tablosu")
-st.dataframe(df_filtered.sort_values("AI%", ascending=False), use_container_width=True)
+st.dataframe(filtered.sort_values("AI%", ascending=False), use_container_width=True)
 
 # =========================
 # STOCK SELECT
@@ -54,7 +54,7 @@ st.subheader("📈 Grafik Analizi")
 selected = st.selectbox("Hisse seç", stocks)
 
 data = yf.download(selected, period="6mo", interval="1d")
-data.dropna(inplace=True)
+data = data.dropna()
 
 # =========================
 # INDICATORS
@@ -64,9 +64,11 @@ ema50 = data["Close"].ewm(span=50).mean()
 
 bb = ta.volatility.BollingerBands(close=data["Close"], window=20, window_dev=2)
 
-# FIX: 1D conversion (CRITICAL)
-bb_upper = bb.bollinger_hband().squeeze()
-bb_lower = bb.bollinger_lband().squeeze()
+# =========================
+# FIX: SAFE 1D CONVERSION
+# =========================
+bb_upper = pd.Series(bb.bollinger_hband().values.reshape(-1), index=data.index)
+bb_lower = pd.Series(bb.bollinger_lband().values.reshape(-1), index=data.index)
 
 # =========================
 # CHART
@@ -123,13 +125,13 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 # =========================
-# AI INFO PANEL
+# AI PANEL
 # =========================
-selected_data = df[df["Hisse"] == selected.replace(".IS","")]
-
 st.subheader("🤖 AI Sinyal Detayı")
+
+selected_data = df[df["Hisse"] == selected.replace(".IS","")]
 
 if not selected_data.empty:
     st.dataframe(selected_data, use_container_width=True)
 else:
-    st.info("Bu hisse için veri yok.")
+    st.info("Veri bulunamadı")
