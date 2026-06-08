@@ -66,6 +66,17 @@ resistance = close.rolling(window=20).max()
             # SCORE SYSTEM
             # =====================
             score = 0
+# =====================
+# BOLLINGER + SUPPORT/RESISTANCE (EKLEME)
+# =====================
+
+# Support bounce
+if abs(close.iloc[-1] - support.iloc[-1]) / close.iloc[-1] < 0.02:
+    score += 15
+
+# Resistance breakout
+if close.iloc[-1] > resistance.iloc[-5]:
+    score += 10
 # Dipten alım fırsatı
 if close.iloc[-1] < bb_low.iloc[-1]:
     score += 20
