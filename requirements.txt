@@ -4,5 +4,5 @@ pandas
 numpy
 ta
 plotly
-streamlit-autorefresh
 requests
+streamlit-autorefresh
