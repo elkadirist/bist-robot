@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 import plotly.graph_objects as go
-import ta
 
 from engine import scan_stocks
 
@@ -27,7 +26,7 @@ st.title("📊 PRO AI TRADING DASHBOARD (BIST)")
 st.write("Canlı teknik analiz + AI sinyal sistemi")
 
 # =========================
-# SCAN DATA
+# DATA FROM ENGINE
 # =========================
 results = scan_stocks(stocks)
 
@@ -47,7 +46,7 @@ st.subheader("📋 Sinyal Tablosu")
 st.dataframe(filtered.sort_values("AI%", ascending=False), use_container_width=True)
 
 # =========================
-# SELECT STOCK
+# STOCK SELECT
 # =========================
 st.subheader("📈 Grafik Analizi")
 
@@ -57,30 +56,27 @@ data = yf.download(selected, period="6mo", interval="1d")
 data = data.dropna()
 
 # =========================
-# INDICATORS
+# INDICATORS (SAFE)
 # =========================
 ema20 = data["Close"].ewm(span=20).mean()
 ema50 = data["Close"].ewm(span=50).mean()
 
-bb = ta.volatility.BollingerBands(close=data["Close"], window=20, window_dev=2)
-
 # =========================
-# SAFE 1D CONVERSION (CRITICAL FIX)
+# MANUAL BOLLINGER (CRASH PROOF)
 # =========================
-bb_upper = bb.bollinger_hband()
-if isinstance(bb_upper, pd.DataFrame):
-    bb_upper = bb_upper.iloc[:, 0]
+window = 20
 
-bb_lower = bb.bollinger_lband()
-if isinstance(bb_lower, pd.DataFrame):
-    bb_lower = bb_lower.iloc[:, 0]
+ma = data["Close"].rolling(window=window).mean()
+std = data["Close"].rolling(window=window).std()
+
+bb_upper = ma + (2 * std)
+bb_lower = ma - (2 * std)
 
 # =========================
 # CHART
 # =========================
 fig = go.Figure()
 
-# Candlestick
 fig.add_trace(go.Candlestick(
     x=data.index,
     open=data["Open"],
@@ -90,7 +86,6 @@ fig.add_trace(go.Candlestick(
     name="Fiyat"
 ))
 
-# EMA
 fig.add_trace(go.Scatter(
     x=data.index,
     y=ema20,
@@ -103,7 +98,6 @@ fig.add_trace(go.Scatter(
     name="EMA50"
 ))
 
-# Bollinger
 fig.add_trace(go.Scatter(
     x=data.index,
     y=bb_upper,
@@ -116,9 +110,6 @@ fig.add_trace(go.Scatter(
     name="BB Lower"
 ))
 
-# =========================
-# LAYOUT
-# =========================
 fig.update_layout(
     title=f"{selected} Teknik Analiz",
     xaxis_title="Tarih",
