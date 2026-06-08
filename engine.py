@@ -11,20 +11,26 @@ def scan_stocks(stocks):
     results = []
 
     for s in stocks:
-        try:
-            df = yf.download(s, period="1y", interval="1d", progress=False)
+    try:
 
-            if df is None or df.empty:
-                continue
+        df = yf.download(s, period="1y", interval="1d", progress=False)
 
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.get_level_values(0)
+        if df is None or df.empty:
+            continue
 
-            close = df["Close"].dropna()
-            volume = df["Volume"].dropna()
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
 
-            if len(close) < 200:
-                continue
+        close = df["Close"].dropna()
+        volume = df["Volume"].dropna()
+
+        if len(close) < 200:
+            continue
+
+        # burada indicatorlar
+
+    except:
+        continue
 
             # =====================
             # INDICATORS
