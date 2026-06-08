@@ -125,3 +125,8 @@ if close.iloc[-1] > bb_high.iloc[-1]:
     return results
 if len(close) < 50:
     continue
+if len(close) < 50:
+    continue
+
+if pd.isna(close.iloc[-1]):
+    continue
