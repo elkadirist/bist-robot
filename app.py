@@ -16,8 +16,8 @@ st.set_page_config(page_title="PRO AI Trading Bot", layout="wide")
 # =========================
 stocks = [
     "THYAO.IS","ASELS.IS","BIMAS.IS","FROTO.IS",
-    "SISE.IS","KOZAL.IS","ASTOR.IS","SASA.IS",
-    "EKGYO.IS","GARAN.IS","YKBNK.IS"
+    "SISE.IS","FRIGO.IS","ASTOR.IS","SASA.IS",
+    "ATATR.IS","TEKTU.IS","GWIND.IS","PGSUS.IS","EGEEN.IS","RNPOL.IS"
 ]
 
 # =========================
