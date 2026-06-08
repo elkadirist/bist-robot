@@ -15,8 +15,8 @@ st.set_page_config(page_title="PRO AI TRADING DASHBOARD", layout="wide")
 # =========================
 stocks = [
     "THYAO.IS","ASELS.IS","BIMAS.IS","FROTO.IS",
-    "SISE.IS","KOZAL.IS","ASTOR.IS","SASA.IS",
-    "EKGYO.IS","GARAN.IS","YKBNK.IS"
+    "SISE.IS","EGEEN.IS","ASTOR.IS","SASA.IS",
+    "PGSUS.IS","GWIND.IS","ATATR.IS","TEKTU.IS","FRIGO.IS","RNPOL.IS"
 ]
 
 # =========================
